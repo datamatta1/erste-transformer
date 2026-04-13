@@ -3,12 +3,13 @@
 const os = require("os");
 const path = require("path");
 const { parseHTMLFile, parseCSVFile, parseWRIFile } = require("./lib/parser");
+const { parsePDFFile } = require("./lib/pdf-reader");
 const { generatePDF, closeBrowser } = require("./lib/pdf");
 
 async function main() {
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.log("Usage: node index.js <file1.html|.csv|.wri> [file2 ...] [--out dir]");
+    console.log("Usage: node index.js <file1.html|.csv|.wri|.pdf> [file2 ...] [--out dir]");
     console.log("  Outputs to ~/Downloads by default.");
     process.exit(1);
   }
@@ -38,6 +39,9 @@ async function main() {
     } else if (ext === ".wri") {
       console.log(`Parsing WRI: ${inputFile}`);
       parsed = parseWRIFile(inputFile);
+    } else if (ext === ".pdf") {
+      console.log(`Parsing PDF: ${inputFile}`);
+      parsed = await parsePDFFile(inputFile);
     } else {
       console.error(`Skipping unsupported file: ${inputFile}`);
       continue;
@@ -53,7 +57,7 @@ async function main() {
     );
 
     console.log(`  -> ${outputFile}`);
-    await generatePDF(transactions, rekapitulacija, outputFile);
+    await generatePDF(transactions, rekapitulacija, parsed.meta, outputFile);
   }
 
   await closeBrowser();

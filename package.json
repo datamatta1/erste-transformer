@@ -25,6 +25,7 @@
     "iconv-lite": "^0.7.2",
     "multer": "^2.1.1",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.6.205",
     "puppeteer-core": "^24.40.0"
   },
   "devDependencies": {

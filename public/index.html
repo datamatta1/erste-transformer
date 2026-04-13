@@ -255,7 +255,7 @@
         <div class="card-desc">Izvod preuzmi iz Erste mBankinga u HTML, CSV ili WRI formatu. Može se učitati i više datoteka odjednom.</div>
       </div>
       <div class="dropzone" id="dropzone">
-        <input type="file" id="fileInput" accept=".html,.htm,.csv,.wri" multiple>
+        <input type="file" id="fileInput" accept=".html,.htm,.csv,.wri,.pdf" multiple>
         <div class="dz-icon">
           <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/></svg>
         </div>
@@ -400,7 +400,7 @@
   function hide(){$ok.classList.remove('on');$err.classList.remove('on');$loader.classList.remove('on');}
 
   function add(list){
-    for(var i=0;i<list.length;i++){var f=list[i],e=ext(f.name);if(!['html','htm','csv','wri'].includes(e))continue;if(files.some(function(s){return s.name===f.name&&s.size===f.size;}))continue;files.push(f);}
+    for(var i=0;i<list.length;i++){var f=list[i],e=ext(f.name);if(!['html','htm','csv','wri','pdf'].includes(e))continue;if(files.some(function(s){return s.name===f.name&&s.size===f.size;}))continue;files.push(f);}
     render();$pCard.classList.remove('open');$eCard.classList.remove('open');
   }
   function removeFile(idx){files.splice(idx,1);render();$pCard.classList.remove('open');$eCard.classList.remove('open');}
@@ -408,7 +408,7 @@
     $list.textContent='';
     files.forEach(function(f,i){
       var row=document.createElement('div');row.className='file-row';
-      var tag=document.createElement('span');var e=ext(f.name);tag.className='file-tag '+(e==='csv'?'csv':e==='wri'?'wri':'html');tag.textContent=e.toUpperCase();
+      var tag=document.createElement('span');var e=ext(f.name);tag.className='file-tag '+(e==='csv'?'csv':e==='wri'?'wri':e==='pdf'?'pdf':'html');tag.textContent=e.toUpperCase();
       var nm=document.createElement('span');nm.className='file-row-name';nm.textContent=f.name;
       var sz=document.createElement('span');sz.className='file-row-meta';sz.textContent=bytes(f.size);
       var x=document.createElement('button');x.className='file-row-x';x.setAttribute('data-i',String(i));x.appendChild(xSvg());x.addEventListener('click',function(){removeFile(parseInt(this.getAttribute('data-i')));});

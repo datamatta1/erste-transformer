@@ -8,6 +8,7 @@ const os = require("os");
 const { PDFDocument } = require("pdf-lib");
 const { parseHTMLFile, parseCSVFile, parseWRIFile, formatIBAN, parsePNB } = require("./lib/parser");
 const { generatePDF, generateSinglePagePDF, closeBrowser, renderSinglePageHTML } = require("./lib/pdf");
+const { parsePDFFile } = require("./lib/pdf-reader");
 const { generateWRI } = require("./lib/wri");
 
 const app = express();
@@ -45,11 +46,12 @@ function getSession(id) {
 }
 
 
-function parseFile(filePath, originalName) {
+async function parseFile(filePath, originalName) {
   const ext = path.extname(originalName).toLowerCase();
   if (ext === ".html" || ext === ".htm") return parseHTMLFile(filePath);
   if (ext === ".csv") return parseCSVFile(filePath);
   if (ext === ".wri") return parseWRIFile(filePath);
+  if (ext === ".pdf") return parsePDFFile(filePath);
   throw new Error("Nepodržani format: " + ext);
 }
 
@@ -92,7 +94,7 @@ app.post("/api/preview", upload.array("files", 50), async (req, res) => {
     let lastRekap = null;
 
     for (const file of req.files) {
-      const parsed = parseFile(file.path, file.originalname);
+      const parsed = await parseFile(file.path, file.originalname);
       allTx = allTx.concat(parsed.transactions);
       lastMeta = parsed.meta || lastMeta;
       lastSmartName = parsed.smartName || lastSmartName;
@@ -135,7 +137,7 @@ app.post("/api/render-page", (req, res) => {
     return res.status(400).json({ error: "Transakcija nije pronađena." });
   }
 
-  const html = renderSinglePageHTML(tx);
+  const html = renderSinglePageHTML(tx, session.meta);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(html);
 });
@@ -148,17 +150,19 @@ app.post("/api/convert", upload.array("files", 50), async (req, res) => {
   try {
     let allTx = [];
     let lastRekap = null;
+    let lastMeta = {};
     let smartName = "izvod_transakcija";
 
     for (const file of req.files) {
-      const parsed = parseFile(file.path, file.originalname);
+      const parsed = await parseFile(file.path, file.originalname);
       allTx = allTx.concat(parsed.transactions);
       lastRekap = parsed.rekapitulacija;
+      lastMeta = parsed.meta || lastMeta;
       if (parsed.smartName) smartName = parsed.smartName;
     }
     cleanupFiles(req.files);
 
-    const pdfBuffer = await generatePDF(allTx, lastRekap);
+    const pdfBuffer = await generatePDF(allTx, lastRekap, lastMeta);
     const incoming = allTx.filter((t) => t.isIncoming).length;
     const outgoing = allTx.filter((t) => !t.isIncoming).length;
     const safeName = path.basename(smartName + ".pdf");
@@ -209,17 +213,19 @@ app.post("/api/convert-zip", upload.array("files", 50), async (req, res) => {
   try {
     let allTx = [];
     let lastRekap = null;
+    let lastMeta = {};
     let smartName = "izvod_transakcija";
 
     for (const file of req.files) {
-      const parsed = parseFile(file.path, file.originalname);
+      const parsed = await parseFile(file.path, file.originalname);
       allTx = allTx.concat(parsed.transactions);
       lastRekap = parsed.rekapitulacija;
+      lastMeta = parsed.meta || lastMeta;
       if (parsed.smartName) smartName = parsed.smartName;
     }
     cleanupFiles(req.files);
 
-    const mergedBuffer = await generatePDF(allTx, lastRekap);
+    const mergedBuffer = await generatePDF(allTx, lastRekap, lastMeta);
     const individualPages = await splitPdfPages(mergedBuffer);
 
     const folderName = smartName;
@@ -262,7 +268,7 @@ app.post("/api/download-page", async (req, res) => {
     return res.status(400).json({ error: "Transakcija nije pronađena." });
   }
   try {
-    const pdfBuffer = await generateSinglePagePDF(tx);
+    const pdfBuffer = await generateSinglePagePDF(tx, session.meta);
     const type = tx.isIncoming ? "uplata" : "isplata";
     const name = tx.counterpartyName
       .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+$/, "").slice(0, 40);
@@ -289,7 +295,7 @@ app.post("/api/convert-wri", upload.array("files", 50), async (req, res) => {
     let lastMeta = {};
 
     for (const file of req.files) {
-      const parsed = parseFile(file.path, file.originalname);
+      const parsed = await parseFile(file.path, file.originalname);
       allTx = allTx.concat(parsed.transactions);
       lastRekap = parsed.rekapitulacija;
       lastMeta = parsed.meta || lastMeta;
