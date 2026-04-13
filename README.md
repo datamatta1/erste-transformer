@@ -87,6 +87,25 @@ public/
 | `PORT` | `3000` | Server port |
 | `CHROMIUM_PATH` | Auto-detected | Path to Chrome/Chromium binary |
 
+## Disclaimer
+
+This is an independent, open-source tool developed by OpusLabs. It is **not affiliated with, endorsed by, or officially connected to Erste&Steiermärkische Bank d.d.** in any way.
+
+Generated documents are reproductions of the bank's standard transaction slip format based on data exported by the user from their own bank account. Every generated PDF is marked with:
+
+> *Generirano pomoću Erste Transformer (OpusLabs) — nije službeni dokument banke*
+
+This tool is intended for internal bookkeeping, accounting, and archival purposes. It does not access bank systems, authenticate on behalf of users, or transmit any financial data externally. All processing happens locally on the user's machine or server.
+
+The Erste Bank name, logo, and legal registration text appear on generated documents solely to reproduce the format familiar to accountants working with Erste Bank statements. If Erste&Steiermärkische Bank d.d. objects to the use of their branding, we will promptly comply with any request to modify or remove it.
+
+**Do not use this tool to fabricate, falsify, or misrepresent financial documents.**
+
+## Support
+
+- Issues: [github.com/datamatta1/erste-transformer/issues](https://github.com/datamatta1/erste-transformer/issues)
+- Author: OpusLabs — mkomljenovic11@gmail.com
+
 ## License
 
 MIT — OpusLabs
