@@ -1,0 +1,9 @@
+node_modules
+*.pdf
+*.zip
+.env
+.env.*
+.DS_Store
+.git
+IZV_*.html
+IZV_*.csv

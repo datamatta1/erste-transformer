@@ -1,0 +1,8 @@
+node_modules/
+*.pdf
+*.zip
+.env
+.env.*
+.DS_Store
+/IZV_*.html
+/IZV_*.csv

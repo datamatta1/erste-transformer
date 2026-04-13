@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Erste Transformer</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #fafafa;
+      --foreground: #09090b;
+      --card: #ffffff;
+      --primary: #18181b;
+      --primary-foreground: #fafafa;
+      --muted: #f4f4f5;
+      --muted-foreground: #71717a;
+      --border: #e4e4e7;
+      --input: #e4e4e7;
+      --green: #16a34a;
+      --green-muted: #f0fdf4;
+      --red: #ef4444;
+      --red-muted: #fef2f2;
+      --radius: 0.5rem;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background); color: var(--foreground);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: 'cv02','cv03','cv04','cv11';
+    }
+    .shell { min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ── HEADER ── */
+    header {
+      height:52px; border-bottom:1px solid var(--border); background:var(--card);
+      display:flex; align-items:center; padding:0 24px; flex-shrink:0;
+    }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand-mark {
+      width:24px; height:24px; background:var(--foreground); color:var(--card);
+      border-radius:6px; display:flex; align-items:center; justify-content:center;
+      font-weight:600; font-size:12px;
+    }
+    .brand-name { font-size:14px; font-weight:600; letter-spacing:-0.02em; }
+    .brand-sep { color:var(--border); font-size:18px; font-weight:300; margin:0 2px; }
+    .brand-sub { font-size:14px; color:var(--muted-foreground); }
+
+    /* ── PAGE ── */
+    .page {
+      flex:1; max-width:1280px; width:100%;
+      margin:0 auto; padding:48px 24px 80px;
+    }
+    .page-title { font-size:28px; font-weight:600; letter-spacing:-0.04em; margin-bottom:4px; }
+    .page-desc { font-size:15px; color:var(--muted-foreground); margin-bottom:36px; line-height:1.5; }
+
+    /* ── CARD ── */
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; padding:28px; margin-bottom:16px;
+      box-shadow:0 1px 2px rgba(0,0,0,0.03);
+    }
+    .card-header { margin-bottom:20px; }
+    .card-label { font-size:16px; font-weight:600; letter-spacing:-0.02em; }
+    .card-desc { font-size:13px; color:var(--muted-foreground); margin-top:2px; }
+
+    /* ── DROPZONE ── */
+    .dropzone {
+      border:2px dashed var(--border); border-radius:10px;
+      padding:40px 20px; text-align:center; cursor:pointer;
+      transition:border-color .15s, background .15s; position:relative;
+    }
+    .dropzone:hover, .dropzone.over { border-color:#a1a1aa; background:#fafafa; }
+    .dropzone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .dz-icon {
+      width:40px; height:40px; margin:0 auto 10px; border-radius:8px;
+      border:1px solid var(--border); background:var(--card);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .dz-icon svg { width:18px; height:18px; color:var(--muted-foreground); }
+    .dz-text { font-size:13px; color:var(--muted-foreground); }
+    .dz-text span { color:var(--foreground); font-weight:500; text-decoration:underline; text-underline-offset:3px; }
+    .dz-hint { font-size:12px; color:#a1a1aa; margin-top:4px; }
+    .file-tag.wri { background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; }
+
+    /* ── FILE LIST ── */
+    .files { margin-top:12px; display:flex; flex-direction:column; gap:4px; }
+    .file-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; transition:background .1s; }
+    .file-row:hover { background:var(--muted); }
+    .file-tag { font-size:10px; font-weight:600; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.03em; flex-shrink:0; }
+    .file-tag.html { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+    .file-tag.csv { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .file-row-name { font-size:13px; font-weight:500; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-row-meta { font-size:12px; color:#a1a1aa; font-variant-numeric:tabular-nums; flex-shrink:0; }
+    .file-row-x { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; border-radius:6px; color:#a1a1aa; transition:all .1s; flex-shrink:0; }
+    .file-row-x:hover { background:var(--red-muted); color:var(--red); }
+    .file-row-x svg { width:14px; height:14px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      height:44px; padding:0 24px; font-family:inherit; font-size:14px; font-weight:500;
+      border-radius:8px; cursor:pointer; transition:all .15s; white-space:nowrap;
+      border:1px solid transparent;
+    }
+    .btn svg { width:16px; height:16px; flex-shrink:0; }
+    .btn-default { background:var(--primary); color:var(--primary-foreground); border-color:var(--primary); box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .btn-default:hover:not(:disabled) { background:#27272a; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .btn-default:active:not(:disabled) { transform:scale(0.985); }
+    .btn:disabled { pointer-events:none; opacity:0.5; }
+    .btn-full { width:100%; }
+    .btn-lg { height:48px; font-size:15px; font-weight:600; border-radius:10px; padding:0 28px; }
+    .actions { display:flex; gap:8px; margin-top:20px; }
+
+    /* ── SECTION VISIBILITY ── */
+    .section { display:none; }
+    .section.open { display:block; }
+
+    /* ── SPLIT PREVIEW ── */
+    .split { display:flex; gap:20px; align-items:flex-start; }
+    .split-left { flex:1; min-width:0; }
+    .split-right {
+      width:340px; flex-shrink:0; position:sticky; top:20px;
+    }
+    @media (max-width:960px) {
+      .split { flex-direction:column; }
+      .split-right { width:100%; position:static; }
+    }
+
+    /* ── STATS ── */
+    .stats-row { display:flex; gap:24px; margin-bottom:14px; }
+    .stat-item { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted-foreground); }
+    .stat-item strong { color:var(--foreground); font-weight:600; font-variant-numeric:tabular-nums; }
+    .stat-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .stat-dot.total { background:var(--foreground); }
+    .stat-dot.in { background:var(--green); }
+    .stat-dot.out { background:var(--red); }
+
+    /* ── TABLE ── */
+    .table-wrap { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .table-scroll { max-height:560px; overflow-y:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    thead { position:sticky; top:0; z-index:1; }
+    th { background:var(--muted); text-align:left; padding:8px 12px; font-weight:500; font-size:12px; color:var(--muted-foreground); border-bottom:1px solid var(--border); }
+    th:last-child { text-align:right; }
+    td { padding:7px 12px; border-bottom:1px solid var(--muted); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    td:last-child { text-align:right; font-variant-numeric:tabular-nums; font-weight:500; }
+    .td-idx { color:#a1a1aa; font-variant-numeric:tabular-nums; width:32px; }
+    .td-trunc { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .badge { display:inline-flex; padding:1px 8px; border-radius:9999px; font-size:11px; font-weight:500; border:1px solid transparent; }
+    .badge-green { background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
+    .badge-red { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+
+    /* clickable rows */
+    tbody tr { cursor:pointer; transition:background .08s; }
+    tbody tr:hover { background:#fafafa; }
+    tbody tr.selected { background:#f0f4ff; }
+    tbody tr.selected td { border-bottom-color:#dbe4ff; }
+
+    /* ── PREVIEW PANEL ── */
+    .preview-panel {
+      border:1px solid var(--border); border-radius:10px;
+      background:var(--card); overflow:hidden;
+    }
+    .preview-panel-header {
+      padding:12px 16px; border-bottom:1px solid var(--border);
+      font-size:12px; font-weight:500; color:var(--muted-foreground);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .preview-panel-header .pp-tag {
+      font-size:11px; padding:1px 7px; border-radius:4px;
+      font-weight:500;
+    }
+    .pp-tag-in { background:#f0fdf4; color:#15803d; }
+    .pp-tag-out { background:#fef2f2; color:#dc2626; }
+    .preview-frame-wrap {
+      background:#e4e4e7; padding:12px;
+      aspect-ratio: 210 / 297;
+      position:relative;
+      overflow:hidden;
+    }
+    .preview-frame-wrap iframe {
+      width:210mm; height:297mm;
+      transform-origin:top left;
+      border:none;
+      background:#fff;
+      display:block;
+    }
+    .preview-empty {
+      display:flex; align-items:center; justify-content:center;
+      aspect-ratio:210/297;
+      background:#f4f4f5;
+      color:#a1a1aa;
+      font-size:13px;
+      text-align:center;
+      padding:20px;
+      line-height:1.5;
+    }
+
+    /* ── EXPORT (radio cards) ── */
+    .radio-group { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    @media (max-width:640px) { .radio-group { grid-template-columns:1fr; } }
+    .radio-card { padding:16px 18px; border:1.5px solid var(--border); border-radius:10px; cursor:pointer; transition:all .12s; position:relative; }
+    .radio-card:hover { border-color:#a1a1aa; background:#fafafa; }
+    .radio-card.active { border-color:var(--foreground); box-shadow:0 0 0 1px var(--foreground); background:var(--card); }
+    .radio-card-dot { position:absolute; top:14px; right:14px; width:16px; height:16px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all .12s; }
+    .radio-card.active .radio-card-dot { border-color:var(--foreground); background:var(--foreground); }
+    .radio-card.active .radio-card-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:var(--card); }
+    .radio-card-title { font-size:13px; font-weight:500; margin-bottom:2px; padding-right:24px; }
+    .radio-card-desc { font-size:12px; color:var(--muted-foreground); line-height:1.4; }
+
+    /* ── LOADER ── */
+    .loader { display:none; margin-top:16px; }
+    .loader.on { display:block; }
+    .loader-bar { height:2px; background:var(--muted); border-radius:2px; overflow:hidden; }
+    .loader-fill { height:100%; width:40%; background:var(--foreground); border-radius:2px; animation:load 1s ease-in-out infinite; }
+    @keyframes load { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+    .loader-text { font-size:12px; color:var(--muted-foreground); text-align:center; margin-top:8px; }
+
+    /* ── TOASTS ── */
+    .toast { display:none; margin-top:16px; padding:12px 14px; border-radius:var(--radius); font-size:13px; border:1px solid; }
+    .toast.on { display:flex; gap:8px; align-items:flex-start; }
+    .toast svg { width:16px; height:16px; flex-shrink:0; margin-top:1px; }
+    .toast-ok { background:var(--green-muted); border-color:#bbf7d0; color:#15803d; }
+    .toast-err { background:var(--red-muted); border-color:#fecaca; color:#dc2626; }
+    .toast-body { flex:1; }
+    .toast-title { font-weight:500; }
+    .toast-detail { font-size:12px; opacity:0.8; margin-top:1px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="brand-mark">E</div>
+      <div class="brand-name">Erste Transformer</div>
+      <div class="brand-sep">/</div>
+      <div class="brand-sub">OpusLabs</div>
+    </div>
+  </header>
+
+  <div class="page">
+    <h1 class="page-title">Erste Transformer</h1>
+    <p class="page-desc">Učitaj izvod, pregledaj sve transakcije, i preuzmi svaku kao zasebni dokument.</p>
+
+    <!-- UPLOAD -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-label">Korak 1 &mdash; Učitaj izvod iz banke</div>
+        <div class="card-desc">Izvod preuzmi iz Erste mBankinga u HTML, CSV ili WRI formatu. Može se učitati i više datoteka odjednom.</div>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".html,.htm,.csv,.wri" multiple>
+        <div class="dz-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/></svg>
+        </div>
+        <div class="dz-text"><span>Odaberi datoteke</span> ili ih povuci ovdje</div>
+        <div class="dz-hint">Podržano: .html, .csv, .wri</div>
+      </div>
+      <div class="files" id="fileList"></div>
+      <div class="actions">
+        <button class="btn btn-default btn-full btn-lg" id="previewBtn" disabled>Učitaj i pregledaj transakcije</button>
+      </div>
+      <div class="toast toast-err" id="uploadErr" style="display:none;margin-top:16px;padding:12px 14px;border-radius:var(--radius);font-size:13px;border:1px solid #fecaca;background:var(--red-muted);color:#dc2626;">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+        <div class="toast-body"><div class="toast-title" id="uploadErrTitle"></div></div>
+      </div>
+    </div>
+
+    <!-- PREVIEW (split: table + page preview) -->
+    <div class="card section" id="previewCard" style="padding:0; overflow:hidden;">
+      <div style="padding:24px 28px 0;">
+        <div class="card-header">
+          <div class="card-label">Korak 2 &mdash; Pregledaj transakcije</div>
+          <div class="card-desc" id="previewDesc">Pronađene transakcije iz učitanih datoteka. Klikni na redak za pregled kako će izgledati generirani PDF dokument.</div>
+        </div>
+        <div class="stats-row" id="statsRow"></div>
+      </div>
+
+      <div class="split" style="padding:0 28px 24px;">
+        <div class="split-left">
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Datum</th>
+                    <th>Druga strana</th>
+                    <th>Opis</th>
+                    <th>Vrsta</th>
+                    <th style="text-align:right">Iznos</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="split-right" id="splitRight">
+          <div class="preview-panel">
+            <div class="preview-panel-header">
+              <span id="ppLabel">Pregled dokumenta</span>
+              <span class="pp-tag" id="ppTag" style="display:none"></span>
+            </div>
+            <div id="ppBody">
+              <div class="preview-empty">Odaberi transakciju<br>iz tablice za prikaz</div>
+            </div>
+            <div id="ppActions" style="display:none; padding:10px 12px; border-top:1px solid var(--border);">
+              <button class="btn btn-default btn-full" id="dlPageBtn" style="height:36px; font-size:13px;">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                Preuzmi ovaj PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="card section" id="exportCard">
+      <div class="card-header">
+        <div class="card-label">Korak 3 &mdash; Preuzmi dokumente</div>
+        <div class="card-desc">Odaberi u kojem formatu želiš preuzeti obrađene transakcije.</div>
+      </div>
+      <div id="smartNamePreview" style="font-size:12px; color:var(--muted-foreground); margin-bottom:14px; padding:8px 12px; background:var(--muted); border-radius:6px; font-family:monospace; word-break:break-all;"></div>
+      <div class="radio-group" style="grid-template-columns:repeat(3,1fr);">
+        <div class="radio-card active" data-mode="pdf">
+          <div class="radio-card-dot"></div>
+          <div class="radio-card-title">Jedan PDF</div>
+          <div class="radio-card-desc">Sve transakcije + rekapitulacija u jednom PDF dokumentu. Idealno za ispis ili slanje mailom.</div>
+        </div>
+        <div class="radio-card" data-mode="zip">
+          <div class="radio-card-dot"></div>
+          <div class="radio-card-title">ZIP arhiva</div>
+          <div class="radio-card-desc">Svaka transakcija kao zasebni PDF u mapi. Za pojedinačno arhiviranje ili knjiženje.</div>
+        </div>
+        <div class="radio-card" data-mode="wri">
+          <div class="radio-card-dot"></div>
+          <div class="radio-card-title">WRI datoteka</div>
+          <div class="radio-card-desc">Erste Bank WRI format. Za uvoz u knjigovodstvene sustave ili drugu bankovnu aplikaciju.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-default btn-full btn-lg" id="exportBtn">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Generiraj i preuzmi
+        </button>
+      </div>
+      <div class="loader" id="loader">
+        <div class="loader-bar"><div class="loader-fill"></div></div>
+        <div class="loader-text" id="loaderText">Generiranje u tijeku...</div>
+      </div>
+      <div class="toast toast-ok" id="toastOk">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div class="toast-body"><div class="toast-title" id="okTitle"></div><div class="toast-detail" id="okDetail"></div></div>
+      </div>
+      <div class="toast toast-err" id="toastErr">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+        <div class="toast-body"><div class="toast-title" id="errTitle"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var files=[], preview=null, mode='pdf', smartName='izvod_transakcija', selectedIdx=-1, sessionId=null;
+
+  var $drop=document.getElementById('dropzone'),
+      $input=document.getElementById('fileInput'),
+      $list=document.getElementById('fileList'),
+      $prev=document.getElementById('previewBtn'),
+      $pCard=document.getElementById('previewCard'),
+      $eCard=document.getElementById('exportCard'),
+      $stats=document.getElementById('statsRow'),
+      $tbody=document.getElementById('tbody'),
+      $export=document.getElementById('exportBtn'),
+      $loader=document.getElementById('loader'),
+      $loadTxt=document.getElementById('loaderText'),
+      $ok=document.getElementById('toastOk'),
+      $okT=document.getElementById('okTitle'),
+      $okD=document.getElementById('okDetail'),
+      $err=document.getElementById('toastErr'),
+      $errT=document.getElementById('errTitle'),
+      $ppBody=document.getElementById('ppBody'),
+      $ppLabel=document.getElementById('ppLabel'),
+      $ppTag=document.getElementById('ppTag'),
+      $splitRight=document.getElementById('splitRight'),
+      $ppActions=document.getElementById('ppActions'),
+      $dlPage=document.getElementById('dlPageBtn');
+
+  function bytes(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';}
+  function ext(n){return n.split('.').pop().toLowerCase();}
+  function xSvg(){var ns='http://www.w3.org/2000/svg',s=document.createElementNS(ns,'svg');s.setAttribute('fill','none');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('stroke-width','1.5');s.setAttribute('stroke','currentColor');var p=document.createElementNS(ns,'path');p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');p.setAttribute('d','M6 18L18 6M6 6l12 12');s.appendChild(p);return s;}
+  function hide(){$ok.classList.remove('on');$err.classList.remove('on');$loader.classList.remove('on');}
+
+  function add(list){
+    for(var i=0;i<list.length;i++){var f=list[i],e=ext(f.name);if(!['html','htm','csv','wri'].includes(e))continue;if(files.some(function(s){return s.name===f.name&&s.size===f.size;}))continue;files.push(f);}
+    render();$pCard.classList.remove('open');$eCard.classList.remove('open');
+  }
+  function removeFile(idx){files.splice(idx,1);render();$pCard.classList.remove('open');$eCard.classList.remove('open');}
+  function render(){
+    $list.textContent='';
+    files.forEach(function(f,i){
+      var row=document.createElement('div');row.className='file-row';
+      var tag=document.createElement('span');var e=ext(f.name);tag.className='file-tag '+(e==='csv'?'csv':e==='wri'?'wri':'html');tag.textContent=e.toUpperCase();
+      var nm=document.createElement('span');nm.className='file-row-name';nm.textContent=f.name;
+      var sz=document.createElement('span');sz.className='file-row-meta';sz.textContent=bytes(f.size);
+      var x=document.createElement('button');x.className='file-row-x';x.setAttribute('data-i',String(i));x.appendChild(xSvg());x.addEventListener('click',function(){removeFile(parseInt(this.getAttribute('data-i')));});
+      row.appendChild(tag);row.appendChild(nm);row.appendChild(sz);row.appendChild(x);$list.appendChild(row);
+    });
+    $prev.disabled=files.length===0;
+  }
+
+  $drop.addEventListener('dragover',function(e){e.preventDefault();$drop.classList.add('over');});
+  $drop.addEventListener('dragleave',function(){$drop.classList.remove('over');});
+  $drop.addEventListener('drop',function(e){e.preventDefault();$drop.classList.remove('over');add(e.dataTransfer.files);});
+  $input.addEventListener('change',function(){add($input.files);$input.value='';});
+
+  /* ── preview ── */
+  $prev.addEventListener('click',async function(){
+    if(!files.length)return;$prev.disabled=true;$prev.textContent='Učitavam\u2026';hide();
+    document.getElementById('uploadErr').style.display='none';
+    try{
+      var fd=new FormData();files.forEach(function(f){fd.append('files',f);});
+      var r=await fetch('/api/preview',{method:'POST',body:fd});
+      if(!r.ok){var d=await r.json();throw new Error(d.error);}
+      preview=await r.json();
+      smartName=preview.smartName||'izvod_transakcija';
+      sessionId=preview.sessionId||null;
+      showPreview();
+    }catch(e){
+      var ue=document.getElementById('uploadErr');
+      var uet=document.getElementById('uploadErrTitle');
+      uet.textContent=e.message;
+      ue.style.display='flex';
+    }
+    finally{$prev.disabled=false;$prev.textContent='Učitaj i pregledaj transakcije';}
+  });
+
+  function showPreview(){
+    selectedIdx=-1;
+    var tot=0,inn=0,out=0;
+    preview.files.forEach(function(f){tot+=f.summary.total;inn+=f.summary.incoming;out+=f.summary.outgoing;});
+
+    $stats.textContent='';
+    [{c:'total',l:'Ukupno',v:tot},{c:'in',l:'Uplate',v:inn},{c:'out',l:'Isplate',v:out}].forEach(function(s){
+      var el=document.createElement('div');el.className='stat-item';
+      var dot=document.createElement('span');dot.className='stat-dot '+s.c;
+      var b=document.createElement('strong');b.textContent=s.v;
+      el.appendChild(dot);el.appendChild(b);el.appendChild(document.createTextNode(' '+s.l));
+      $stats.appendChild(el);
+    });
+
+    $tbody.textContent='';
+    var n=0;
+    preview.files.forEach(function(fd){
+      fd.summary.transactions.forEach(function(tx){
+        var idx=n; n++;
+        var tr=document.createElement('tr');
+        tr.setAttribute('data-idx',String(idx));
+        tr.addEventListener('click',function(){selectRow(parseInt(this.getAttribute('data-idx')),this);});
+
+        var c0=document.createElement('td');c0.className='td-idx';c0.textContent=n;
+        var c1=document.createElement('td');c1.textContent=tx.date;
+        var c2=document.createElement('td');c2.className='td-trunc';c2.textContent=tx.counterparty;
+        var c3=document.createElement('td');c3.className='td-trunc';c3.textContent=tx.description;
+        var c4=document.createElement('td');var bg=document.createElement('span');
+        bg.className='badge '+(tx.type==='uplata'?'badge-green':'badge-red');
+        bg.textContent=tx.type==='uplata'?'Uplata':'Isplata';c4.appendChild(bg);
+        var c5=document.createElement('td');c5.textContent=tx.amount+' EUR';
+
+        tr.appendChild(c0);tr.appendChild(c1);tr.appendChild(c2);
+        tr.appendChild(c3);tr.appendChild(c4);tr.appendChild(c5);
+        $tbody.appendChild(tr);
+      });
+    });
+
+    // reset preview panel
+    $ppBody.textContent='';
+    var empty=document.createElement('div');
+    empty.className='preview-empty';
+    empty.textContent='Odaberi transakciju iz tablice za prikaz';
+    $ppBody.appendChild(empty);
+    $ppTag.style.display='none';
+    $ppLabel.textContent='Pregled dokumenta';
+    $ppActions.style.display='none';
+
+    // Update preview description with company & period info
+    var desc = document.getElementById('previewDesc');
+    var meta = preview.meta || {};
+    var parts = [];
+    if (meta.companyName) parts.push(meta.companyName);
+    if (meta.periodFrom && meta.periodTo) parts.push('za razdoblje ' + meta.periodFrom + ' \u2014 ' + meta.periodTo);
+    if (parts.length > 0) {
+      desc.textContent = parts.join(', ') + '. Klikni na redak za pregled PDF dokumenta.';
+    }
+
+    // Update smart filename preview
+    var fnEl = document.getElementById('smartNamePreview');
+    fnEl.textContent = 'Naziv datoteke: ' + smartName + '.pdf';
+
+    $pCard.classList.add('open');
+    $eCard.classList.add('open');
+    $pCard.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  async function selectRow(idx,trEl){
+    // highlight
+    selectedIdx=idx;
+    $tbody.querySelectorAll('tr').forEach(function(r){r.classList.remove('selected');});
+    trEl.classList.add('selected');
+
+    // figure out transaction info from preview data
+    var allTx=[];
+    preview.files.forEach(function(f){allTx=allTx.concat(f.summary.transactions);});
+    var tx=allTx[idx];
+
+    $ppLabel.textContent='#'+(idx+1)+' \u2014 '+tx.counterparty;
+    $ppTag.style.display='inline';
+    $ppTag.className='pp-tag '+(tx.type==='uplata'?'pp-tag-in':'pp-tag-out');
+    $ppTag.textContent=tx.type==='uplata'?'Uplata':'Isplata';
+
+    // fetch rendered HTML
+    $ppBody.textContent='';
+    var loading=document.createElement('div');
+    loading.className='preview-empty';
+    loading.textContent='Učitavam\u2026';
+    $ppBody.appendChild(loading);
+
+    try{
+      var r=await fetch('/api/render-page',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({index:idx,sessionId:sessionId})
+      });
+      if(!r.ok)throw new Error('Greška');
+      var html=await r.text();
+      showPagePreview(html);
+      $ppActions.style.display='block';
+    }catch(e){
+      $ppBody.textContent='';
+      var err=document.createElement('div');
+      err.className='preview-empty';
+      err.textContent='Greška pri učitavanju pregleda';
+      $ppBody.appendChild(err);
+    }
+  }
+
+  function showPagePreview(html){
+    $ppBody.textContent='';
+    var wrap=document.createElement('div');
+    wrap.className='preview-frame-wrap';
+
+    var iframe=document.createElement('iframe');
+    iframe.sandbox='allow-same-origin';
+    iframe.setAttribute('srcdoc',html);
+    wrap.appendChild(iframe);
+    $ppBody.appendChild(wrap);
+
+    // scale iframe to fit container once loaded
+    iframe.addEventListener('load',function(){
+      var containerW=wrap.clientWidth-24; // minus padding
+      var pageW=794; // 210mm in px at 96dpi
+      var scale=containerW/pageW;
+      iframe.style.transform='scale('+scale+')';
+      wrap.style.height=Math.round(1123*scale+24)+'px'; // 297mm in px * scale + padding
+    });
+  }
+
+  /* ── single page download ── */
+  $dlPage.addEventListener('click',async function(){
+    if(selectedIdx<0||!sessionId)return;
+    $dlPage.disabled=true;$dlPage.textContent='Generiram\u2026';
+    try{
+      var r=await fetch('/api/download-page',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({index:selectedIdx,sessionId:sessionId})
+      });
+      if(!r.ok)throw new Error('Greška');
+      var cd=r.headers.get('Content-Disposition')||'';
+      var fn=cd.match(/filename="(.+)"/);
+      dl(await r.blob(),fn?fn[1]:'transakcija.pdf');
+    }catch(e){$errT.textContent=e.message;$err.classList.add('on');}
+    finally{
+      $dlPage.disabled=false;$dlPage.textContent='';
+      var ns='http://www.w3.org/2000/svg';
+      var svg=document.createElementNS(ns,'svg');svg.setAttribute('fill','none');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke','currentColor');
+      var p=document.createElementNS(ns,'path');p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');p.setAttribute('d','M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3');
+      svg.appendChild(p);$dlPage.appendChild(svg);$dlPage.appendChild(document.createTextNode(' Preuzmi ovaj PDF'));
+    }
+  });
+
+  /* ── radio cards ── */
+  document.querySelectorAll('.radio-card').forEach(function(c){
+    c.addEventListener('click',function(){
+      document.querySelectorAll('.radio-card').forEach(function(r){r.classList.remove('active');});
+      this.classList.add('active');mode=this.getAttribute('data-mode');
+    });
+  });
+
+  /* ── export ── */
+  $export.addEventListener('click',async function(){
+    if(!files.length)return;$export.disabled=true;hide();$loader.classList.add('on');
+    var tot=preview?preview.files.reduce(function(s,f){return s+f.summary.total;},0):'?';
+    var fd=new FormData();files.forEach(function(f){fd.append('files',f);});
+    try{
+      if(mode==='pdf'){
+        $loadTxt.textContent='Generiram PDF sa '+tot+' transakcija i rekapitulacijom\u2026';
+        var r=await fetch('/api/convert',{method:'POST',body:fd});if(!r.ok){var d=await r.json();throw new Error(d.error);}
+        var sn=r.headers.get('X-Smart-Name')||smartName;
+        dl(await r.blob(),sn+'.pdf');
+        ok('PDF je spreman za preuzimanje',sn+'.pdf \u2014 '+tot+' transakcija + rekapitulacija (' + (parseInt(tot)+1) + ' stranica)');
+      }else if(mode==='zip'){
+        $loadTxt.textContent='Generiram '+tot+' pojedinačnih PDF-ova i pakiram u ZIP\u2026';
+        var r=await fetch('/api/convert-zip',{method:'POST',body:fd});if(!r.ok){var d=await r.json();throw new Error(d.error);}
+        var zn=(smartName||'erste_transactions')+'.zip';
+        dl(await r.blob(),zn);
+        ok('ZIP arhiva je spremna',zn+' \u2014 '+tot+' PDF-ova + rekapitulacija u mapi');
+      }else if(mode==='wri'){
+        $loadTxt.textContent='Generiram WRI datoteku sa '+tot+' transakcija\u2026';
+        var r=await fetch('/api/convert-wri',{method:'POST',body:fd});if(!r.ok){var d=await r.json();throw new Error(d.error);}
+        var sn=r.headers.get('X-Smart-Name')||smartName;
+        dl(await r.blob(),sn+'.wri');
+        ok('WRI datoteka generirana',sn+'.wri \u2014 '+tot+' transakcija u Erste Bank formatu');
+      }
+    }catch(e){$errT.textContent=e.message;$err.classList.add('on');}
+    finally{$loader.classList.remove('on');$export.disabled=false;}
+  });
+
+  function dl(blob,name){var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+  function ok(t,d){$okT.textContent=t;$okD.textContent=d;$ok.classList.add('on');}
+</script>
+</body>
+</html>
